@@ -1,9 +1,18 @@
 "use client";
 
+// ==============================================================================
+// 1. นำเข้าโมดูลและ Hooks จาก React
+// ==============================================================================
 import { useEffect, useState, useMemo } from "react";
 
+// อ่านค่า URL ของ Backend API จาก Environment Variable (.env.local) หรือใช้ localhost:3000 เป็นค่าเริ่มต้น
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
+// ==============================================================================
+// 2. ประกาศ Interface กำหนดโครงสร้างข้อมูล (TypeScript Type Definition)
+// ==============================================================================
+
+// โครงสร้างของข้อมูล Review แต่ละรายการ
 interface Review {
   id: number;
   rating: number;
@@ -11,6 +20,7 @@ interface Review {
   bookId: number;
 }
 
+// โครงสร้างของข้อมูล Book แต่ละเล่ม รวมถึงอาร์เรย์ของ reviews ที่ซ้อนอยู่
 interface Book {
   id: number;
   title: string;
@@ -20,34 +30,50 @@ interface Book {
   reviews: Review[];
 }
 
+// ==============================================================================
+// 3. Main Component หน้าจอหลักของแอพพลิเคชัน
+// ==============================================================================
 export default function BookReviewApp() {
-  const [books, setBooks] = useState<Book[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
+  // ----------------------------------------------------------------------------
+  // State: สำหรับจัดการข้อมูลและแสดงผลรายการหนังสือ
+  // ----------------------------------------------------------------------------
+  const [books, setBooks] = useState<Book[]>([]);           // รายการหนังสือทั้งหมดที่ดึงมาจาก API
+  const [loading, setLoading] = useState(true);              // สถานะกำลังโหลดข้อมูล
+  const [searchQuery, setSearchQuery] = useState("");        // ข้อความคำค้นหาใน Search box
 
-  // Modal State for Book Create / Edit
-  const [isBookModalOpen, setIsBookModalOpen] = useState(false);
-  const [editingBook, setEditingBook] = useState<Book | null>(null);
-  const [title, setTitle] = useState("");
-  const [author, setAuthor] = useState("");
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [isSubmittingBook, setIsSubmittingBook] = useState(false);
+  // ----------------------------------------------------------------------------
+  // State: สำหรับจัดการ Modal เพิ่ม/แก้ไขหนังสือ (Create / Edit Book)
+  // ----------------------------------------------------------------------------
+  const [isBookModalOpen, setIsBookModalOpen] = useState(false); // ควบคุมการเปิด/ปิด Modal
+  const [editingBook, setEditingBook] = useState<Book | null>(null); // เก็บเล่มที่กำลังแก้ไข (ถ้าเป็น null แปลว่าสร้างใหม่)
+  const [title, setTitle] = useState("");                     // ค่าในช่องกรอกชื่อหนังสือ
+  const [author, setAuthor] = useState("");                   // ค่าในช่องกรอกชื่อผู้แต่ง
+  const [selectedFile, setSelectedFile] = useState<File | null>(null); // ไฟล์รูปภาพที่ผู้ใช้เลือกผ่าน input file
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);   // URL พรีวิวรูปภาพก่อนกดส่ง
+  const [isSubmittingBook, setIsSubmittingBook] = useState(false);     // สถานะกำลังบันทึกข้อมูลหนังสือ
 
-  // Modal State for Reviews
-  const [activeReviewBook, setActiveReviewBook] = useState<Book | null>(null);
-  const [rating, setRating] = useState(5);
-  const [reviewContent, setReviewContent] = useState("");
-  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  // ----------------------------------------------------------------------------
+  // State: สำหรับจัดการ Modal ดูและเพิ่มรีวิว (Review Modal)
+  // ----------------------------------------------------------------------------
+  const [activeReviewBook, setActiveReviewBook] = useState<Book | null>(null); // เก็บเล่มที่กำลังเปิดดู/เขียนรีวิว
+  const [rating, setRating] = useState(5);                                     // คะแนนดาวที่เลือก (1-5)
+  const [reviewContent, setReviewContent] = useState("");                      // ข้อความรีวิว
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);         // สถานะกำลังส่งรีวิว
 
-  // 1. Fetch Books
+  // ============================================================================
+  // 4. ฟังก์ชันเชื่อมต่อกับ Backend API (Data Fetching & Mutations)
+  // ============================================================================
+
+  /**
+   * [Read] ฟังก์ชันดึงรายการหนังสือทั้งหมดจาก Backend: GET /books
+   */
   const fetchBooks = async () => {
     try {
       setLoading(true);
       const res = await fetch(`${API_URL}/books`);
       if (!res.ok) throw new Error("Failed to fetch books");
       const data = await res.json();
-      setBooks(data);
+      setBooks(data); // นำข้อมูลมาเซ็ตลง State
     } catch (err) {
       console.error("Error fetching books:", err);
     } finally {
@@ -55,11 +81,14 @@ export default function BookReviewApp() {
     }
   };
 
+  // เรียกใช้ fetchBooks ทันทีเมื่อเปิดหน้าเว็บครั้งแรก (Component Mount)
   useEffect(() => {
     fetchBooks();
   }, []);
 
-  // Update preview URL when selectedFile changes
+  /**
+   * Effect จัดการรูปภาพ Preview: เมื่อมีการเลือกไฟล์รูปใหม่ จะสร้าง Object URL มาพรีวิว
+   */
   useEffect(() => {
     if (!selectedFile) {
       setPreviewUrl(null);
@@ -67,10 +96,13 @@ export default function BookReviewApp() {
     }
     const objectUrl = URL.createObjectURL(selectedFile);
     setPreviewUrl(objectUrl);
+    // Cleanup URL เมื่อ Component unmount หรือเปลี่ยนไฟล์ใหม่ เพื่อประหยัด Memory
     return () => URL.revokeObjectURL(objectUrl);
   }, [selectedFile]);
 
-  // Open modal for Create
+  /**
+   * เปิด Modal สำหรับเพิ่มหนังสือใหม่ (เคลียร์ค่าเก่าออกทั้งหมด)
+   */
   const handleOpenCreateModal = () => {
     setEditingBook(null);
     setTitle("");
@@ -80,20 +112,25 @@ export default function BookReviewApp() {
     setIsBookModalOpen(true);
   };
 
-  // Open modal for Edit
+  /**
+   * เปิด Modal สำหรับแก้ไขหนังสือ (นำค่าของเล่มที่เลือกมาใส่ใน Form)
+   */
   const handleOpenEditModal = (book: Book) => {
     setEditingBook(book);
     setTitle(book.title);
     setAuthor(book.author);
     setSelectedFile(null);
-    setPreviewUrl(book.coverUrl);
+    setPreviewUrl(book.coverUrl); // แสดงรูปเดิมที่มีอยู่ก่อน
     setIsBookModalOpen(true);
   };
 
-  // Upload image helper
+  /**
+   * [Upload] ฟังก์ชันอัปโหลดไฟล์รูปภาพไปยัง Backend: POST /upload
+   * ส่งไฟล์ผ่าน FormData และรับ URL ของรูปภาพกลับมา
+   */
   const uploadImage = async (file: File): Promise<string> => {
     const formData = new FormData();
-    formData.append("file", file);
+    formData.append("file", file); // แนบคีย์ชื่อ 'file' ให้ตรงกับ multer ใน backend
 
     const res = await fetch(`${API_URL}/upload`, {
       method: "POST",
@@ -106,10 +143,14 @@ export default function BookReviewApp() {
     }
 
     const data = await res.json();
-    return data.url;
+    return data.url; // ส่งคืน URL เช่น http://localhost:3000/uploads/xxx.png
   };
 
-  // Submit Book (Create / Update)
+  /**
+   * [Create / Update] ฟังก์ชันบันทึกข้อมูลหนังสือ
+   * - ถ้า editingBook มีค่า: ส่งคำขอ PUT /books/:id
+   * - ถ้า editingBook เป็น null: ส่งคำขอ POST /books
+   */
   const handleSubmitBook = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !author.trim()) {
@@ -121,13 +162,13 @@ export default function BookReviewApp() {
       setIsSubmittingBook(true);
       let coverUrl = editingBook ? editingBook.coverUrl : null;
 
-      // If a new file is chosen, upload it first
+      // ถ้าผู้ใช้เลือกไฟล์ใหม่ ให้อัปโหลดไฟล์ก่อนเพื่อเอา URL มาเก็บ
       if (selectedFile) {
         coverUrl = await uploadImage(selectedFile);
       }
 
       if (editingBook) {
-        // Update (PUT)
+        // อัปเดตหนังสือเล่มเดิม (PUT)
         const res = await fetch(`${API_URL}/books/${editingBook.id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -135,7 +176,7 @@ export default function BookReviewApp() {
         });
         if (!res.ok) throw new Error("แก้ไขหนังสือไม่สำเร็จ");
       } else {
-        // Create (POST)
+        // เพิ่มหนังสือเล่มใหม่ (POST)
         const res = await fetch(`${API_URL}/books`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -144,8 +185,8 @@ export default function BookReviewApp() {
         if (!res.ok) throw new Error("เพิ่มหนังสือไม่สำเร็จ");
       }
 
-      setIsBookModalOpen(false);
-      fetchBooks();
+      setIsBookModalOpen(false); // ปิด Modal
+      fetchBooks();              // โหลดรายการหนังสือใหม่ให้หน้าจออัปเดตทันที
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "เกิดข้อผิดพลาด";
       alert(msg);
@@ -154,7 +195,9 @@ export default function BookReviewApp() {
     }
   };
 
-  // Delete Book
+  /**
+   * [Delete] ฟังก์ชันลบหนังสือ: DELETE /books/:id
+   */
   const handleDeleteBook = async (id: number, bookTitle: string) => {
     if (!confirm(`คุณต้องการลบหนังสือเรื่อง "${bookTitle}" หรือไม่?`)) return;
 
@@ -163,14 +206,16 @@ export default function BookReviewApp() {
         method: "DELETE",
       });
       if (!res.ok) throw new Error("ลบหนังสือไม่สำเร็จ");
-      fetchBooks();
+      fetchBooks(); // โหลดรายการหนังสือใหม่หลังจากลบ
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "เกิดข้อผิดพลาด";
       alert(msg);
     }
   };
 
-  // Submit Review
+  /**
+   * [Create Review] ฟังก์ชันส่งรีวิวใหม่: POST /books/:id/reviews
+   */
   const handleAddReview = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeReviewBook) return;
@@ -189,16 +234,16 @@ export default function BookReviewApp() {
 
       if (!res.ok) throw new Error("เพิ่มรีวิวไม่สำเร็จ");
 
-      // Refresh reviews in the active modal
+      // ดึงข้อมูลหนังสือเล่มนี้ใหม่ เพื่ออัปเดตรายการรีวิวใน Modal ทันที
       const bookRes = await fetch(`${API_URL}/books/${activeReviewBook.id}`);
       if (bookRes.ok) {
         const updatedBook = await bookRes.json();
         setActiveReviewBook(updatedBook);
       }
 
-      setReviewContent("");
-      setRating(5);
-      fetchBooks();
+      setReviewContent(""); // เคลียร์ข้อความในฟอร์ม
+      setRating(5);          // รีเซ็ตคะแนนเป็น 5 ดาว
+      fetchBooks();          // อัปเดตรายการหน้าหลัก
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "เกิดข้อผิดพลาด";
       alert(msg);
@@ -207,7 +252,11 @@ export default function BookReviewApp() {
     }
   };
 
-  // Filtered books
+  // ----------------------------------------------------------------------------
+  // คำนวณข้อมูลช่วยแสดงผล (Computed / Memoized Values)
+  // ----------------------------------------------------------------------------
+
+  // กรองรายชื่อหนังสือตามคำค้นหา (ชื่อเรื่อง หรือ ชื่อผู้แต่ง)
   const filteredBooks = useMemo(() => {
     return books.filter((b) =>
       b.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -215,14 +264,18 @@ export default function BookReviewApp() {
     );
   }, [books, searchQuery]);
 
-  // Overall stats
+  // คำนวณจำนวนรีวิวสะสมทั้งหมดในระบบ
   const totalReviews = useMemo(() => {
     return books.reduce((acc, b) => acc + (b.reviews ? b.reviews.length : 0), 0);
   }, [books]);
 
+  // ============================================================================
+  // 5. ส่วนแสดงผล UI (JSX & Tailwind CSS)
+  // ============================================================================
   return (
     <div className="min-h-screen bg-slate-100 text-slate-800 flex flex-col font-sans">
-      {/* Navbar */}
+      
+      {/* -------------------- ส่วนแถบเมนูด้านบน (Navbar) -------------------- */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center space-x-3">
@@ -232,6 +285,7 @@ export default function BookReviewApp() {
             </span>
           </div>
 
+          {/* ปุ่มเปิด Modal เพิ่มหนังสือใหม่ */}
           <button
             onClick={handleOpenCreateModal}
             className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-2 rounded-lg transition-all shadow-sm hover:shadow"
@@ -241,8 +295,9 @@ export default function BookReviewApp() {
         </div>
       </header>
 
-      {/* Hero / Controls Section */}
+      {/* -------------------- ส่วนเนื้อหาหลัก (Main Content) -------------------- */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full">
+        {/* หัวข้อและช่องค้นหา */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
           <div>
             <h1 className="text-2xl font-bold text-slate-900">คลังหนังสือและรีวิว</h1>
@@ -251,7 +306,7 @@ export default function BookReviewApp() {
             </p>
           </div>
 
-          {/* Search box */}
+          {/* ช่องกรอกค้นหา (Search Box) */}
           <div className="w-full md:w-80">
             <input
               type="text"
@@ -263,14 +318,16 @@ export default function BookReviewApp() {
           </div>
         </div>
 
-        {/* Books List Grid */}
+        {/* ตารางแสดงการ์ดหนังสือ (Grid Layout) */}
         {loading ? (
+          // แสดง Skeleton จำลองขณะกำลังโหลด
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {[1, 2, 3, 4].map((n) => (
               <div key={n} className="bg-white rounded-xl shadow-xs border border-slate-200 p-4 animate-pulse h-96" />
             ))}
           </div>
         ) : filteredBooks.length === 0 ? (
+          // กรณีไม่มีข้อมูลหนังสือ
           <div className="bg-white rounded-2xl border border-dashed border-slate-300 p-12 text-center my-6">
             <div className="text-5xl mb-3">📚</div>
             <h3 className="text-lg font-semibold text-slate-800">
@@ -291,9 +348,11 @@ export default function BookReviewApp() {
             )}
           </div>
         ) : (
+          // แสดงการ์ดหนังสือแต่ละเล่ม
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {filteredBooks.map((book) => {
               const reviewCount = book.reviews ? book.reviews.length : 0;
+              // คำนวณค่าเฉลี่ยคะแนนดาว
               const avgRating =
                 reviewCount > 0
                   ? (book.reviews.reduce((sum, r) => sum + r.rating, 0) / reviewCount).toFixed(1)
@@ -304,7 +363,7 @@ export default function BookReviewApp() {
                   key={book.id}
                   className="bg-white rounded-xl shadow-xs hover:shadow-md border border-slate-200 transition-all flex flex-col overflow-hidden"
                 >
-                  {/* Cover Image */}
+                  {/* รูปภาพหน้าปกหนังสือ (Cover Image) */}
                   <div className="h-56 bg-slate-100 relative overflow-hidden flex items-center justify-center border-b border-slate-100">
                     {book.coverUrl ? (
                       <img
@@ -312,7 +371,7 @@ export default function BookReviewApp() {
                         alt={book.title}
                         className="w-full h-full object-cover"
                         onError={(e) => {
-                          // Fallback on broken image
+                          // กรณีรูปเสีย ให้ซ่อนและแสดงไอคอนสำรองแทน
                           (e.target as HTMLElement).style.display = "none";
                         }}
                       />
@@ -323,14 +382,14 @@ export default function BookReviewApp() {
                       </div>
                     )}
 
-                    {/* Star badge overlay */}
+                    {/* ป้ายแสดงคะแนนดาวเฉลี่ยมุมขวาบน */}
                     <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-xs px-2.5 py-1 rounded-full text-xs font-semibold shadow-xs flex items-center gap-1">
                       <span className="text-amber-500">★</span>
                       <span>{avgRating ? avgRating : "ไม่มีรีวิว"}</span>
                     </div>
                   </div>
 
-                  {/* Book Content */}
+                  {/* ข้อมูลรายละเอียดหนังสือ */}
                   <div className="p-4 flex-1 flex flex-col justify-between">
                     <div>
                       <h3 className="font-bold text-slate-900 line-clamp-1 text-base" title={book.title}>
@@ -341,8 +400,9 @@ export default function BookReviewApp() {
                       </p>
                     </div>
 
-                    {/* Actions */}
+                    {/* ปุ่ม Action ด้านล่างการ์ด: รีวิว, แก้ไข, ลบ */}
                     <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                      {/* ปุ่มเปิดดูรีวิว */}
                       <button
                         onClick={() => setActiveReviewBook(book)}
                         className="flex-1 flex items-center justify-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium py-2 rounded-lg transition"
@@ -352,6 +412,7 @@ export default function BookReviewApp() {
                       </button>
 
                       <div className="flex items-center gap-1">
+                        {/* ปุ่มแก้ไขข้อมูล */}
                         <button
                           onClick={() => handleOpenEditModal(book)}
                           title="แก้ไข"
@@ -359,6 +420,7 @@ export default function BookReviewApp() {
                         >
                           ✏️
                         </button>
+                        {/* ปุ่มลบหนังสือ */}
                         <button
                           onClick={() => handleDeleteBook(book.id, book.title)}
                           title="ลบ"
@@ -376,9 +438,9 @@ export default function BookReviewApp() {
         )}
       </main>
 
-      {/* ==================================================== */}
-      {/* Modal: Create / Edit Book (พร้อม Upload รูปภาพ) */}
-      {/* ==================================================== */}
+      {/* ------------------------------------------------------------------------ */}
+      {/* 6. Modal: เพิ่ม/แก้ไขหนังสือ พร้อมระบบ Upload รูปภาพ */}
+      {/* ------------------------------------------------------------------------ */}
       {isBookModalOpen && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-100">
@@ -395,6 +457,7 @@ export default function BookReviewApp() {
             </div>
 
             <form onSubmit={handleSubmitBook} className="space-y-4">
+              {/* ช่องกรอกชื่อหนังสือ */}
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
                   ชื่อหนังสือ <span className="text-rose-500">*</span>
@@ -409,6 +472,7 @@ export default function BookReviewApp() {
                 />
               </div>
 
+              {/* ช่องกรอกชื่อผู้แต่ง */}
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
                   ชื่อผู้แต่ง <span className="text-rose-500">*</span>
@@ -423,6 +487,7 @@ export default function BookReviewApp() {
                 />
               </div>
 
+              {/* ช่องเลือกไฟล์รูปภาพหน้าปกสำหรับ Upload */}
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
                   รูปภาพหน้าปกหนังสือ (อัปโหลดไฟล์)
@@ -438,7 +503,7 @@ export default function BookReviewApp() {
                   className="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
                 />
 
-                {/* Image Preview */}
+                {/* ส่วนแสดงภาพตัวอย่าง Preview */}
                 {previewUrl && (
                   <div className="mt-3 relative w-32 h-44 rounded-lg overflow-hidden border border-slate-200 shadow-xs">
                     <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
@@ -457,6 +522,7 @@ export default function BookReviewApp() {
                 )}
               </div>
 
+              {/* ปุ่มยกเลิกและบันทึก */}
               <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-100">
                 <button
                   type="button"
@@ -479,13 +545,13 @@ export default function BookReviewApp() {
         </div>
       )}
 
-      {/* ==================================================== */}
-      {/* Modal: View & Add Reviews */}
-      {/* ==================================================== */}
+      {/* ------------------------------------------------------------------------ */}
+      {/* 7. Modal: ดูรายการรีวิว และเขียนรีวิวใหม่ */}
+      {/* ------------------------------------------------------------------------ */}
       {activeReviewBook && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] flex flex-col shadow-xl border border-slate-100 overflow-hidden">
-            {/* Modal Header */}
+            {/* ส่วนหัวของ Modal แสดงชื่อหนังสือ */}
             <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
               <div className="flex items-center gap-3">
                 {activeReviewBook.coverUrl ? (
@@ -512,7 +578,7 @@ export default function BookReviewApp() {
               </button>
             </div>
 
-            {/* Reviews List */}
+            {/* รายการรีวิวเดิม */}
             <div className="p-5 overflow-y-auto flex-1 space-y-3">
               <div className="flex items-center justify-between mb-2">
                 <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider">
@@ -548,12 +614,13 @@ export default function BookReviewApp() {
               )}
             </div>
 
-            {/* Add Review Form */}
+            {/* ฟอร์มสำหรับส่งรีวิวใหม่ */}
             <div className="p-5 border-t border-slate-100 bg-white">
               <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
                 ✍️ เขียนรีวิวใหม่
               </h4>
               <form onSubmit={handleAddReview} className="space-y-3">
+                {/* เลือกคะแนนดาว 1-5 */}
                 <div>
                   <label className="block text-xs font-medium text-slate-600 mb-1">คะแนนความพึงพอใจ</label>
                   <div className="flex gap-2">
@@ -575,6 +642,7 @@ export default function BookReviewApp() {
                   </div>
                 </div>
 
+                {/* ช่องกรอกข้อความรีวิว */}
                 <div>
                   <label className="block text-xs font-medium text-slate-600 mb-1">
                     ข้อความรีวิว
@@ -604,7 +672,7 @@ export default function BookReviewApp() {
         </div>
       )}
 
-      {/* Footer */}
+      {/* -------------------- ส่วนแถบท้ายหน้าเว็บ (Footer) -------------------- */}
       <footer className="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-400">
         Book Review Web Application • Express + Prisma + Next.js
       </footer>

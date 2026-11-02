@@ -1,30 +1,37 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
+// ==========================================
+// การตั้งค่า Prisma Schema สำหรับฐานข้อมูล (SQLite)
+// ==========================================
 
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
+// ตัวสร้าง Client สำหรับนำไปใช้ในโค้ด JavaScript/TypeScript
 generator client {
   provider = "prisma-client-js"
 }
 
+// แหล่งข้อมูล (Datasource) ระบุประเภทฐานข้อมูลเป็น sqlite และอ่าน connection string จากไฟล์ .env (DATABASE_URL="file:./dev.db")
 datasource db {
   provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
+// ------------------------------------------
+// โมเดล: Book (ตารางเก็บข้อมูลหนังสือ)
+// ------------------------------------------
 model Book {
-  id          Int      @id @default(autoincrement())
-  title       String
-  author      String
-  publishedAt DateTime @default(now())
-  coverUrl    String?
-  reviews     Review[] // ความสัมพันธ์ 1 to Many
+  id          Int      @id @default(autoincrement()) // รหัสหนังสือ (Primary Key, เพิ่มค่าอัตโนมัติ)
+  title       String                                 // ชื่อหนังสือ (ข้อความ ห้ามว่าง)
+  author      String                                 // ชื่อผู้แต่ง (ข้อความ ห้ามว่าง)
+  publishedAt DateTime @default(now())               // วันที่สร้าง/บันทึก (ค่าเริ่มต้นคือเวลาปัจจุบัน)
+  coverUrl    String?                                // ลิงก์ URL รูปภาพหน้าปก (ใส่หรือไม่ใส่ก็ได้ Nullable)
+  reviews     Review[]                               // ความสัมพันธ์ 1 to Many: หนังสือ 1 เล่มมีได้หลายรีวิว
 }
 
+// ------------------------------------------
+// โมเดล: Review (ตารางเก็บข้อมูลความคิดเห็นและคะแนน)
+// ------------------------------------------
 model Review {
-  id      Int    @id @default(autoincrement())
-  rating  Int
-  content String
-  bookId  Int
-  book    Book   @relation(fields: [bookId], references: [id])
+  id      Int    @id @default(autoincrement())       // รหัสรีวิว (Primary Key, เพิ่มค่าอัตโนมัติ)
+  rating  Int                                       // คะแนนความพึงพอใจ (ตัวเลข เช่น 1 - 5)
+  content String                                    // ข้อความรีวิว/ความคิดเห็น
+  bookId  Int                                       // รหัสหนังสือที่ผูกไว้ (Foreign Key ชี้ไปยัง Book.id)
+  book    Book   @relation(fields: [bookId], references: [id]) // ความสัมพันธ์เชื่อมอ้างอิงกลับไปยังโมเดล Book
 }
