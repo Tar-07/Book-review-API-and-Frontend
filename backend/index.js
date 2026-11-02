@@ -7,6 +7,8 @@ const multer = require('multer');            // Multer middleware สำหร�
 const path = require('path');                // Path module ของ Node.js สำหรับจัดการ path โฟลเดอร์และไฟล์
 const fs = require('fs');                    // File System module สำหรับตรวจสอบ/สร้างโฟลเดอร์ในเครื่อง
 const { PrismaClient } = require('@prisma/client'); // Prisma ORM สำหรับจัดการและคิวรีฐานข้อมูล SQLite
+const swaggerUi = require('swagger-ui-express');      // Swagger UI สำหรับแสดงหน้าต่างเอกสาร API
+const swaggerDocument = require('./swagger.json');    // ไฟล์ OpenAPI / Swagger Specification
 
 // ==============================================================================
 // 2. กำหนดค่าเริ่มต้นให้กับเซิร์ฟเวอร์
@@ -43,6 +45,9 @@ const storage = multer.diskStorage({
   }
 });
 const upload = multer({ storage: storage });
+
+// เปิดใช้งาน Swagger UI สำหรับอ่านเอกสารและทดสอบ API
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 // ==============================================================================
 // 4. API Endpoints
@@ -237,4 +242,5 @@ app.post('/books/:id/reviews', async (req, res) => {
 // ==============================================================================
 app.listen(port, () => {
   console.log(`Server is running at http://localhost:${port}`);
+  console.log(`Swagger UI is available at http://localhost:${port}/api-docs`);
 });

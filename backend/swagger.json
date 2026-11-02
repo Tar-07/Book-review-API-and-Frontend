@@ -1,0 +1,512 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Book Review API",
+    "version": "1.0.0",
+    "description": "API Documentation สำหรับระบบจัดการหนังสือและรีวิว (Book Review Application) พร้อมระบบอัปโหลดรูปภาพหน้าปก"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000",
+      "description": "Development Server"
+    }
+  ],
+  "tags": [
+    {
+      "name": "General",
+      "description": "Endpoints ทั่วไปและตรวจสอบสถานะ"
+    },
+    {
+      "name": "Upload",
+      "description": "ระบบอัปโหลดไฟล์รูปภาพ"
+    },
+    {
+      "name": "Books",
+      "description": "การจัดการข้อมูลหนังสือ (CRUD)"
+    },
+    {
+      "name": "Reviews",
+      "description": "การจัดการรีวิวหนังสือ"
+    }
+  ],
+  "paths": {
+    "/": {
+      "get": {
+        "tags": ["General"],
+        "summary": "ตรวจสอบสถานะ API",
+        "description": "Endpoint หน้าแรกสำหรับทดสอบว่า Server Backend รันอยู่หรือไม่",
+        "responses": {
+          "200": {
+            "description": "Server ทำงานปกติ",
+            "content": {
+              "text/plain": {
+                "example": "📚 Book Review API is running! เข้าดูข้อมูลหนังสือได้ที่ /books"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/upload": {
+      "post": {
+        "tags": ["Upload"],
+        "summary": "อัปโหลดรูปภาพหน้าปกหนังสือ",
+        "description": "ส่งไฟล์รูปภาพผ่าน multipart/form-data เพื่อรับ URL กลับไปใช้งาน",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "ไฟล์รูปภาพที่ต้องการอัปโหลด"
+                  }
+                },
+                "required": ["file"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "อัปโหลดสำเร็จ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "url": {
+                      "type": "string",
+                      "example": "http://localhost:3000/uploads/1730000000000-123456789.png"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "ไม่ได้แนบไฟล์รูปภาพ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/books": {
+      "get": {
+        "tags": ["Books"],
+        "summary": "ดึงรายการหนังสือทั้งหมด",
+        "description": "ดึงข้อมูลหนังสือทั้งหมด พร้อมรายการรีวิวของหนังสือแต่ละเล่ม เรียงจากเล่มที่สร้างล่าสุดก่อน",
+        "responses": {
+          "200": {
+            "description": "ดึงข้อมูลสำเร็จ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/BookWithReviews"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "เกิดข้อผิดพลาดฝั่งเซิร์ฟเวอร์",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Books"],
+        "summary": "เพิ่มหนังสือเล่มใหม่",
+        "description": "สร้างรายการหนังสือใหม่ในฐานข้อมูล",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateBookInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "สร้างหนังสือสำเร็จ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Book"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "ข้อมูลที่ส่งมาไม่ครบถ้วน",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "ไม่สามารถสร้างหนังสือได้",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/books/{id}": {
+      "get": {
+        "tags": ["Books"],
+        "summary": "ดึงข้อมูลหนังสือตามรหัส (ID)",
+        "description": "ดึงข้อมูลหนังสือเฉพาะเล่มที่ระบุ พร้อมรีวิวทั้งหมดของเล่มนั้น",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "รหัส ID ของหนังสือ",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "พบข้อมูลหนังสือ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookWithReviews"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "รหัสหนังสือไม่ถูกต้อง",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "ไม่พบหนังสือตาม ID ที่ระบุ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["Books"],
+        "summary": "แก้ไขข้อมูลหนังสือตามรหัส (ID)",
+        "description": "อัปเดตชื่อหนังสือ, ผู้แต่ง, หรือรูปหน้าปก",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "รหัส ID ของหนังสือที่ต้องการแก้ไข",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateBookInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "แก้ไขข้อมูลสำเร็จ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Book"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "รหัสหนังสือไม่ถูกต้อง หรือแก้ไขไม่สำเร็จ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Books"],
+        "summary": "ลบข้อมูลหนังสือตามรหัส (ID)",
+        "description": "ลบหนังสือและรีวิวทั้งหมดที่เกี่ยวข้องกับหนังสือเล่มนี้ (Cascade Delete)",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "รหัส ID ของหนังสือที่ต้องการลบ",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ลบหนังสือเรียบร้อยแล้ว",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "ลบหนังสือเรียบร้อยแล้ว"
+                    },
+                    "book": {
+                      "$ref": "#/components/schemas/Book"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "รหัสหนังสือไม่ถูกต้อง หรือลบไม่สำเร็จ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/books/{id}/reviews": {
+      "post": {
+        "tags": ["Reviews"],
+        "summary": "เพิ่มรีวิวให้กับหนังสือตามรหัส (ID)",
+        "description": "บันทึกความคิดเห็นและคะแนนรีวิว (1-5) ให้กับหนังสือเล่มที่ระบุ",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "รหัส ID ของหนังสือที่ต้องการรีวิว",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateReviewInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "เพิ่มรีวิวสำเร็จ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Review"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "ข้อมูลรีวิวไม่ถูกต้องหรือไม่ครบถ้วน",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Book": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 1
+          },
+          "title": {
+            "type": "string",
+            "example": "Clean Code"
+          },
+          "author": {
+            "type": "string",
+            "example": "Robert C. Martin"
+          },
+          "publishedAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-11-02T12:00:00.000Z"
+          },
+          "coverUrl": {
+            "type": "string",
+            "nullable": true,
+            "example": "http://localhost:3000/uploads/clean-code.png"
+          }
+        }
+      },
+      "Review": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 1
+          },
+          "rating": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5,
+            "example": 5
+          },
+          "content": {
+            "type": "string",
+            "example": "หนังสือดีมาก แนะนำสำหรับโปรแกรมเมอร์ทุกคน"
+          },
+          "bookId": {
+            "type": "integer",
+            "example": 1
+          }
+        }
+      },
+      "BookWithReviews": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Book"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "reviews": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Review"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "CreateBookInput": {
+        "type": "object",
+        "required": ["title", "author"],
+        "properties": {
+          "title": {
+            "type": "string",
+            "example": "Clean Architecture"
+          },
+          "author": {
+            "type": "string",
+            "example": "Robert C. Martin"
+          },
+          "coverUrl": {
+            "type": "string",
+            "nullable": true,
+            "example": "http://localhost:3000/uploads/architecture.png"
+          }
+        }
+      },
+      "UpdateBookInput": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "example": "Clean Code (2nd Edition)"
+          },
+          "author": {
+            "type": "string",
+            "example": "Robert C. Martin"
+          },
+          "coverUrl": {
+            "type": "string",
+            "nullable": true,
+            "example": "http://localhost:3000/uploads/clean-code-v2.png"
+          }
+        }
+      },
+      "CreateReviewInput": {
+        "type": "object",
+        "required": ["rating", "content"],
+        "properties": {
+          "rating": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5,
+            "example": 5
+          },
+          "content": {
+            "type": "string",
+            "example": "เนื้อหาเข้าใจง่าย นำไปปรับใช้ได้จริง"
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "example": "ข้อความแจ้งเตือนข้อผิดพลาด"
+          }
+        }
+      }
+    }
+  }
+}

@@ -56,6 +56,7 @@ node index.js
 ```
 * **ผลลัพธ์:** เซิร์ฟเวอร์จะขึ้นข้อความ `Server is running at http://localhost:3000`
 * สามารถทดสอบเข้าดูข้อมูล API ได้ที่: `http://localhost:3000/books`
+* สามารถเข้าดูและทดสอบ API ผ่าน **Swagger UI** ได้ที่: `http://localhost:3000/api-docs`
 
 ---
 
