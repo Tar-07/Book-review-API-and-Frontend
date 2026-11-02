@@ -24,7 +24,7 @@
 ### 1. Clone โปรเจกต์
 เปิด Terminal แล้วรันคำสั่ง:
 ```bash
-git clone [<URL_REPOSITORY_ของคุณ>](https://github.com/Tar-07/Book-review-API-and-Frontend)
+git clone https://github.com/Tar-07/Book-review-API-and-Frontend
 cd book-review-api
 ```
 
