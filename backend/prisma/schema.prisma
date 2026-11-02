@@ -1,0 +1,30 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Book {
+  id          Int      @id @default(autoincrement())
+  title       String
+  author      String
+  publishedAt DateTime @default(now())
+  coverUrl    String?
+  reviews     Review[] // ความสัมพันธ์ 1 to Many
+}
+
+model Review {
+  id      Int    @id @default(autoincrement())
+  rating  Int
+  content String
+  bookId  Int
+  book    Book   @relation(fields: [bookId], references: [id])
+}

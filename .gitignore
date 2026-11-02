@@ -1,0 +1,35 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Next.js build output
+.next/
+**/.next/
+out/
+
+# Environment files
+.env
+.env*.local
+**/.env
+**/.env*.local
+!.env.example
+!**/.env.example
+
+# SQLite Database
+dev.db
+dev.db-journal
+backend/prisma/dev.db
+backend/prisma/dev.db-journal
+
+# Uploaded files
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# Archive and zip files
+*.zip
+*.tar.gz
+*.rar
+
+# OS files
+.DS_Store
+Thumbs.db
