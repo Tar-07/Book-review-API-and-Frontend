@@ -87,6 +87,24 @@ npm run dev
 
 ---
 
+### 📖 2.1 การดูเอกสาร API และการนำเข้า Postman (Swagger / OpenAPI)
+
+ระบบมีเอกสารสเปก API มาตรฐาน (OpenAPI 3.0) อยู่ที่ไฟล์ `backend/swagger.json` สามารถใช้งานได้ 2 รูปแบบ:
+
+#### 1. ทดสอบผ่าน Swagger UI บนเบราว์เซอร์
+* เมื่อรัน Backend แล้ว เปิดไปที่: **`http://localhost:3000/api-docs`**
+* สามารถกดดูรายละเอียด Request/Response และกด **"Try it out"** เพื่อทดลองยิง API ได้ทันที
+
+#### 2. วิธีการนำ Swagger เข้า Postman (Import / Drag & Drop)
+หากต้องการทดสอบผ่านโปรแกรม **Postman** โดยไม่ต้องเสียเวลานั่งสร้าง Request เองทีละเส้น:
+1. เปิดโปรแกรม **Postman**
+2. กดปุ่ม **Import** (บริเวณแถบเมนูมุมซ้ายบน)
+3. **ลากไฟล์ `backend/swagger.json`** จากโฟลเดอร์โปรเจกต์มาวางลงในหน้าต่าง Import ของ Postman ได้ทันที (หรือกด *files* เพื่อเลือกไฟล์ `backend/swagger.json`)
+4. Postman จะแสดงตัวเลือกว่าพบ OpenAPI 3.0 ให้เลือก **Import as: Postman Collection** แล้วคลิกปุ่ม **Import**
+5. **ผลลัพธ์:** Postman จะสร้าง Collection ชื่อ **`Book Review API`** ขึ้นมาให้อัตโนมัติ โดยมีครบทุก Endpoint (`GET /books`, `POST /upload`, `POST /books`, `PUT /books/:id`, `DELETE /books/:id`, `POST /books/:id/reviews`) พร้อม Headers และ Parameters ตัวอย่างให้พร้อมยิงทดสอบได้ทันที
+
+---
+
 ## 🛠️ 3. แนวทางการแก้ไขระบบแต่ละส่วน (How-To Guide)
 
 หากต้องการปรับแต่งระบบ เพิ่มฟิลด์ หรือเปลี่ยนหน้าตา UI ให้ดูตามหัวข้อด้านล่างนี้ได้เลย:
