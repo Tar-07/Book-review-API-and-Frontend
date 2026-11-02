@@ -42,10 +42,16 @@ cd backend
 # 1. ติดตั้ง Library ทั้งหมดของ Backend (express, cors, multer, prisma)
 npm install
 
-# 2. ทำการ Generate Prisma Client เพื่อให้อ่าน Schema ล่าสุด
+# 2. สร้างไฟล์ .env จาก .env.example (ถ้ายังไม่มีไฟล์ .env)
+# Windows (PowerShell / Command Prompt):
+copy .env.example .env
+# macOS / Linux:
+# cp .env.example .env
+
+# 3. ทำการ Generate Prisma Client เพื่อให้อ่าน Schema ล่าสุด
 npx prisma generate
 
-# 3. เริ่มต้นรัน Backend Server
+# 4. เริ่มต้นรัน Backend Server
 node index.js
 ```
 * **ผลลัพธ์:** เซิร์ฟเวอร์จะขึ้นข้อความ `Server is running at http://localhost:3000`
@@ -61,7 +67,13 @@ cd frontend
 # 1. ติดตั้ง Library ทั้งหมดของ Next.js และ Tailwind CSS
 npm install
 
-# 2. เริ่มต้นรัน Dev Server ของหน้าเว็บ
+# 2. สร้างไฟล์ .env.local จาก .env.example (ถ้ายังไม่มีไฟล์ .env.local)
+# Windows (PowerShell / Command Prompt):
+copy .env.example .env.local
+# macOS / Linux:
+# cp .env.example .env.local
+
+# 3. เริ่มต้นรัน Dev Server ของหน้าเว็บ
 npm run dev
 ```
 * **ผลลัพธ์:** หน้าเว็บจะพร้อมทำงานที่ `http://localhost:3001` (หรือ `http://localhost:3000` หากไม่มีพอร์ตชน)
